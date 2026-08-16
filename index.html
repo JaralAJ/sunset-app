@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sunset Check</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>SUNSET CHECK</h1>
+      <p class="subtitle" id="place-name">Miami, FL</p>
+    </header>
+
+    <div class="loc-picker">
+      <button class="loc-btn" data-loc="miami">Miami</button>
+      <button class="loc-btn" data-loc="cleveland">Cleveland</button>
+      <button class="loc-btn" id="geo-btn">📍 My location</button>
+    </div>
+
+    <p id="status" class="status"></p>
+
+    <section id="result" hidden>
+      <div class="score-card">
+        <div class="switch-track" id="switch-track">
+          <div class="switch-arcs">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="switch-thumb" id="switch-thumb"></div>
+        </div>
+
+        <div class="score-num" id="score-num">–</div>
+        <div class="score-label" id="score-label"></div>
+        <p class="reason" id="reason"></p>
+        <p class="sunset-time">Sunset at <strong id="sunset-time"></strong></p>
+      </div>
+
+      <div class="breakdown" id="breakdown"></div>
+
+      <h2>Next few days</h2>
+      <div class="outlook" id="outlook"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

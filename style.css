@@ -1,0 +1,317 @@
+:root {
+  --page-bg: #e9eef5;
+  --plate: #ffffff;
+  --ink: #1f2430;
+  --ink-dim: #8891a3;
+  --shadow-out: 0 18px 40px rgba(31, 36, 48, 0.12);
+  --shadow-in-lo: inset 6px 6px 14px rgba(31, 36, 48, 0.06);
+  --shadow-in-hi: inset -6px -6px 14px rgba(255, 255, 255, 0.7);
+
+  /* level palettes: [track-start, track-mid, track-end, sun-core, sun-edge, glow] */
+  --excellent-1: #ff7a4d;
+  --excellent-2: #ff9a3c;
+  --excellent-3: #ffc84b;
+  --sun-core: #fff3c4;
+  --sun-edge: #ffb547;
+
+  --good-1: #ff8f70;
+  --good-2: #ffb26b;
+  --good-3: #ffd88a;
+
+  --meh-1: #a08cae;
+  --meh-2: #cf9fa0;
+  --meh-3: #f0c48a;
+
+  --poor-1: #5b6390;
+  --poor-2: #8b7597;
+  --poor-3: #b98a8a;
+
+  --skip-1: #2c3358;
+  --skip-2: #454b72;
+  --skip-3: #6a6488;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--page-bg);
+  color: var(--ink);
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px 64px;
+}
+
+main {
+  width: 100%;
+  max-width: 460px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  margin: 0 0 2px;
+  color: var(--ink);
+}
+
+.subtitle {
+  color: var(--ink-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* --- pill plate shared look (paper-cut / neumorphic) --- */
+.loc-picker,
+.score-card,
+.breakdown-row,
+.outlook-card {
+  background: var(--plate);
+  box-shadow: var(--shadow-out);
+}
+
+.loc-picker {
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  margin-bottom: 18px;
+}
+
+.loc-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--ink-dim);
+  padding: 10px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  white-space: nowrap;
+}
+
+.loc-btn:hover {
+  color: var(--ink);
+}
+
+.loc-btn.active {
+  background: linear-gradient(135deg, var(--excellent-2), var(--excellent-3));
+  color: #3a1f0a;
+  box-shadow: 0 6px 14px rgba(255, 138, 61, 0.4);
+}
+
+.status {
+  text-align: center;
+  color: var(--ink-dim);
+  min-height: 1.2em;
+  font-size: 0.9rem;
+}
+
+/* --- score card --- */
+.score-card {
+  border-radius: 32px;
+  padding: 26px 22px 24px;
+  text-align: center;
+}
+
+/* the toggle-switch visual */
+.switch-track {
+  position: relative;
+  height: 96px;
+  border-radius: 999px;
+  margin: 0 auto 18px;
+  overflow: hidden;
+  background: linear-gradient(100deg, var(--meh-1) 0%, var(--meh-2) 55%, var(--meh-3) 100%);
+  box-shadow: var(--shadow-in-lo), var(--shadow-in-hi);
+  transition: background 0.5s ease;
+}
+
+.switch-track[data-level="excellent"] {
+  background: linear-gradient(100deg, var(--excellent-1) 0%, var(--excellent-2) 55%, var(--excellent-3) 100%);
+}
+.switch-track[data-level="good"] {
+  background: linear-gradient(100deg, var(--good-1) 0%, var(--good-2) 55%, var(--good-3) 100%);
+}
+.switch-track[data-level="meh"] {
+  background: linear-gradient(100deg, var(--meh-1) 0%, var(--meh-2) 55%, var(--meh-3) 100%);
+}
+.switch-track[data-level="poor"] {
+  background: linear-gradient(100deg, var(--poor-1) 0%, var(--poor-2) 55%, var(--poor-3) 100%);
+}
+.switch-track[data-level="skip"] {
+  background: linear-gradient(100deg, var(--skip-1) 0%, var(--skip-2) 55%, var(--skip-3) 100%);
+}
+
+/* concentric paper-cut arcs, echoing the clouds/craters in the reference art */
+.switch-arcs {
+  position: absolute;
+  inset: 0;
+  right: -30%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.switch-arcs span {
+  position: absolute;
+  right: 6%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.switch-arcs span:nth-child(1) {
+  width: 140px;
+  height: 140px;
+}
+.switch-arcs span:nth-child(2) {
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.14);
+}
+.switch-arcs span:nth-child(3) {
+  width: 62px;
+  height: 62px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--sun-core), var(--sun-edge) 70%);
+  box-shadow: inset -6px -6px 10px rgba(120, 60, 0, 0.18), 0 0 0 rgba(255, 180, 71, 0);
+  transition: left 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.6s ease, width 0.6s ease, height 0.6s ease, top 0.6s ease;
+}
+
+.score-num {
+  font-size: 3.4rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-top: 2px;
+  letter-spacing: 0.02em;
+}
+
+.score-label[data-level="excellent"] { color: #e85d2a; }
+.score-label[data-level="good"] { color: #e08a3c; }
+.score-label[data-level="meh"] { color: #9c7a6a; }
+.score-label[data-level="poor"] { color: #6a6f92; }
+.score-label[data-level="skip"] { color: #3b3f5c; }
+
+.reason {
+  color: var(--ink-dim);
+  margin: 14px 0 6px;
+  line-height: 1.45;
+  font-size: 0.92rem;
+}
+
+.sunset-time {
+  color: var(--ink-dim);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+.sunset-time strong {
+  color: var(--ink);
+}
+
+/* --- breakdown tiles --- */
+.breakdown {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 18px 0;
+}
+
+.breakdown-row {
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.breakdown-row span {
+  color: var(--ink-dim);
+}
+
+.breakdown-row strong {
+  color: var(--ink);
+}
+
+h2 {
+  font-size: 0.8rem;
+  color: var(--ink-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin: 26px 0 10px;
+  padding-left: 4px;
+}
+
+.outlook {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.outlook-card {
+  flex: 1;
+  border-radius: 18px;
+  padding: 12px 4px 14px;
+  text-align: center;
+}
+
+.outlook-day {
+  font-size: 0.72rem;
+  color: var(--ink-dim);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.outlook-sun {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--sun-core), var(--sun-edge) 70%);
+}
+
+.outlook-sun[data-level="poor"],
+.outlook-sun[data-level="skip"] {
+  background: radial-gradient(circle at 35% 30%, #c8ccdc, #8b90ab 70%);
+}
+
+.outlook-score {
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.outlook-score[data-level="excellent"] { color: #e85d2a; }
+.outlook-score[data-level="good"] { color: #e08a3c; }
+.outlook-score[data-level="meh"] { color: #9c7a6a; }
+.outlook-score[data-level="poor"] { color: #6a6f92; }
+.outlook-score[data-level="skip"] { color: #3b3f5c; }
