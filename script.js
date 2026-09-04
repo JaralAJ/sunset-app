@@ -41,7 +41,8 @@ function init() {
       (pos) => {
         loadLocation(pos.coords.latitude, pos.coords.longitude, "Your location");
       },
-      () => showStatus("Couldn't get your location. Try a saved city instead.")
+      (err) => showStatus(geolocationErrorMessage(err)),
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 5 * 60 * 1000 }
     );
   });
 
@@ -84,6 +85,19 @@ function showStatus(msg) {
   els.status.textContent = msg;
 }
 
+function geolocationErrorMessage(err) {
+  switch (err.code) {
+    case err.PERMISSION_DENIED:
+      return "Location access is blocked. Allow it for this site in your browser settings, and make sure location is turned on for your device.";
+    case err.POSITION_UNAVAILABLE:
+      return "Your device couldn't determine a location right now. Try again or use a saved city.";
+    case err.TIMEOUT:
+      return "Finding your location took too long. Try again or use a saved city.";
+    default:
+      return "Couldn't get your location. Try a saved city instead.";
+  }
+}
+
 async function fetchForecast(lat, lon) {
   const params = new URLSearchParams({
     latitude: lat,
@@ -116,28 +130,40 @@ function hourIndexForTime(hourlyTimes, targetIso) {
 
 // Scoring heuristic:
 // - Low clouds near the horizon block the sun before it can light anything
-//   up, so they're penalized heavily.
-// - A moderate amount of mid/high cloud is what actually catches and
-//   scatters color; too little is a plain clear sky, too much is overcast.
+//   up, so they're penalized — but Open-Meteo only gives sky-wide cloud
+//   cover, not which direction it's in, so a moderate amount doesn't
+//   necessarily mean the western horizon itself is blocked. We penalize
+//   low cloud less steeply than the old version did, and never zero it out.
+// - Mid/high cloud is what actually catches and scatters color. Real
+//   vivid sunsets often have HEAVY (60-90%) mid/high cloud (thin cirrus
+//   lights up across the whole sky) — only a fully bare or fully solid
+//   overcast sky is truly dull, so the sweet spot is wide, not a narrow
+//   peak, and the high side tapers off gently rather than collapsing.
 // - Lower humidity / higher visibility means crisper, more saturated color.
-// Open-Meteo doesn't give cloud cover by compass direction, so this uses
-// overall sky cover as a stand-in for "clouds toward the western horizon."
 function scoreSunset({ low, mid, high, humidity, visibility }) {
-  const lowScore = clamp(100 - low * 1.3, 0, 100);
+  const lowScore = clamp(100 - low, 10, 100);
 
   const midHigh = Math.max(mid, high * 0.9);
-  const idealCenter = 40;
-  const spread = 35;
-  const midHighScore = clamp(100 - (Math.abs(midHigh - idealCenter) / spread) * 100, 5, 100);
+  const midHighScore = midHighCloudScore(midHigh);
 
   const humidityScore = clamp(100 - humidity, 0, 100);
   const visKm = visibility / 1000;
   const visibilityScore = clamp((visKm / 20) * 100, 0, 100);
   const clarityScore = humidityScore * 0.6 + visibilityScore * 0.4;
 
-  const overall = Math.round(lowScore * 0.45 + midHighScore * 0.4 + clarityScore * 0.15);
+  const overall = Math.round(lowScore * 0.4 + midHighScore * 0.45 + clarityScore * 0.15);
 
   return { overall: clamp(overall, 0, 100), lowScore, midHighScore, clarityScore, midHigh };
+}
+
+// Wide "sweet spot" plateau from 35-75% cover, gentle ramps on both sides,
+// and a floor well above zero even at the extremes (bare sky is plain but
+// not ugly; heavy cloud is often still colorful, just less dramatic).
+function midHighCloudScore(midHigh) {
+  if (midHigh <= 10) return 40 + (midHigh / 10) * 10;
+  if (midHigh <= 35) return 50 + ((midHigh - 10) / 25) * 45;
+  if (midHigh <= 75) return 95 + ((midHigh - 35) / 40) * 5;
+  return clamp(100 - ((midHigh - 75) / 25) * 35, 65, 100);
 }
 
 function labelFor(score) {
@@ -150,13 +176,13 @@ function labelFor(score) {
 
 function reasonFor({ low, mid, high, humidity }, s) {
   const parts = [];
-  if (low > 60) parts.push("thick low clouds will likely block the sun");
-  else if (low > 30) parts.push("some low cloud could dim the show");
+  if (low > 70) parts.push("thick low clouds will likely block the sun");
+  else if (low > 35) parts.push("some low cloud could dim the show");
   else parts.push("clear near the horizon");
 
-  if (s.midHigh >= 25 && s.midHigh <= 60) parts.push("nice mid/high clouds to catch color");
+  if (s.midHigh >= 25 && s.midHigh <= 85) parts.push("nice mid/high clouds to catch color");
   else if (s.midHigh < 25) parts.push("sky is pretty bare, so color may be mild");
-  else parts.push("heavy cloud cover up high could mute the color");
+  else parts.push("heavy cloud cover up high could still light up, but may look more muted");
 
   if (humidity < 50) parts.push("dry air for crisp color");
   else if (humidity > 80) parts.push("humid/hazy air may wash out color");
