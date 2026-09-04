@@ -19,9 +19,15 @@ const els = {
   switchThumb: document.getElementById("switch-thumb"),
 };
 
+// Tracks the currently loaded location's sunrise/sunset (as absolute
+// timestamps) so the background can be re-checked against the real clock
+// every minute without re-fetching.
+let currentSunTimes = null;
+
 init();
 
 function init() {
+  setInterval(updateDayPhase, 60 * 1000);
   els.buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       setActiveButton(btn);
@@ -73,6 +79,7 @@ async function loadLocation(lat, lon, label) {
     const data = await fetchForecast(lat, lon);
     renderToday(data);
     renderOutlook(data);
+    setSunTimesFromForecast(data);
     els.result.hidden = false;
     showStatus("");
   } catch (err) {
@@ -103,13 +110,47 @@ async function fetchForecast(lat, lon) {
     latitude: lat,
     longitude: lon,
     hourly: "cloud_cover_low,cloud_cover_mid,cloud_cover_high,relative_humidity_2m,visibility",
-    daily: "sunset",
+    daily: "sunrise,sunset",
     forecast_days: "6",
     timezone: "auto",
   });
   const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
   if (!res.ok) throw new Error(`Open-Meteo error: ${res.status}`);
   return res.json();
+}
+
+// Open-Meteo's "auto timezone" times are plain wall-clock strings with no
+// offset (e.g. "2026-09-04T19:32") — they're local to the requested
+// location, not UTC. To compare them against the real current instant
+// (Date.now()) regardless of what timezone the browser itself is in, we
+// use the response's utc_offset_seconds to convert to a true UTC ms value.
+function toAbsoluteMs(localIso, utcOffsetSeconds) {
+  return Date.parse(`${localIso}Z`) - utcOffsetSeconds * 1000;
+}
+
+function setSunTimesFromForecast(data) {
+  const offset = data.utc_offset_seconds || 0;
+  currentSunTimes = {
+    sunrise: toAbsoluteMs(data.daily.sunrise[0], offset),
+    sunset: toAbsoluteMs(data.daily.sunset[0], offset),
+  };
+  updateDayPhase();
+}
+
+// Golden-hour-ish window around actual sunrise/sunset; outside daylight
+// hours entirely it's night, otherwise midday.
+const DAY_PHASE_WINDOW_MS = 50 * 60 * 1000;
+
+function getDayPhase(nowMs, sunriseMs, sunsetMs) {
+  if (Math.abs(nowMs - sunriseMs) <= DAY_PHASE_WINDOW_MS) return "sunrise";
+  if (Math.abs(nowMs - sunsetMs) <= DAY_PHASE_WINDOW_MS) return "sunset";
+  if (nowMs > sunriseMs && nowMs < sunsetMs) return "midday";
+  return "night";
+}
+
+function updateDayPhase() {
+  if (!currentSunTimes) return;
+  document.body.dataset.phase = getDayPhase(Date.now(), currentSunTimes.sunrise, currentSunTimes.sunset);
 }
 
 // Sunset color peaks in the ~20 min after the sun dips below the horizon
@@ -174,7 +215,7 @@ function labelFor(score) {
   return "Skip it";
 }
 
-function reasonFor({ low, mid, high, humidity }, s) {
+function reasonFor({ low, humidity }, s) {
   const parts = [];
   if (low > 70) parts.push("thick low clouds will likely block the sun");
   else if (low > 35) parts.push("some low cloud could dim the show");

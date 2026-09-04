@@ -1,5 +1,4 @@
 :root {
-  --page-bg: #e9eef5;
   --plate: #ffffff;
   --ink: #1f2430;
   --ink-dim: #8891a3;
@@ -29,6 +28,31 @@
   --skip-1: #2c3358;
   --skip-2: #454b72;
   --skip-3: #6a6488;
+
+  /* page-level text (sits directly on the sky background, not on a plate) */
+  --page-ink: var(--ink);
+  --page-ink-dim: var(--ink-dim);
+
+  /* time-of-day sky palettes: [sky-top, sky-mid, sky-bottom, ambient glow] */
+  --sunrise-1: #ffe3c2;
+  --sunrise-2: #ffb1ab;
+  --sunrise-3: #cdb0e6;
+  --sunrise-glow: #ffd9a0;
+
+  --midday-1: #eaf4ff;
+  --midday-2: #dcefff;
+  --midday-3: #cfe6ff;
+  --midday-glow: #fffaf0;
+
+  --sunset-1: #ffb37a;
+  --sunset-2: #ff7f6b;
+  --sunset-3: #93619e;
+  --sunset-glow: #ff8a5b;
+
+  --night-1: #171b30;
+  --night-2: #232a49;
+  --night-3: #2f3760;
+  --night-glow: #c9d6f5;
 }
 
 * {
@@ -39,16 +63,88 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: var(--page-bg);
-  color: var(--ink);
+  background: linear-gradient(165deg, var(--midday-1) 0%, var(--midday-2) 55%, var(--midday-3) 100%);
+  --glow: var(--midday-glow);
+  color: var(--page-ink);
   display: flex;
   justify-content: center;
   padding: 32px 16px 64px;
+  position: relative;
+  overflow-x: hidden;
+  transition: background 1.4s ease;
+}
+
+/* --- time-of-day sky (driven by body[data-phase], set from real sunrise/sunset) --- */
+body[data-phase="sunrise"] {
+  background: linear-gradient(165deg, var(--sunrise-1) 0%, var(--sunrise-2) 55%, var(--sunrise-3) 100%);
+  --glow: var(--sunrise-glow);
+  --page-ink: #3a2440;
+  --page-ink-dim: #8a6f8f;
+}
+body[data-phase="midday"] {
+  background: linear-gradient(165deg, var(--midday-1) 0%, var(--midday-2) 55%, var(--midday-3) 100%);
+  --glow: var(--midday-glow);
+  --page-ink: var(--ink);
+  --page-ink-dim: var(--ink-dim);
+}
+body[data-phase="sunset"] {
+  background: linear-gradient(165deg, var(--sunset-1) 0%, var(--sunset-2) 55%, var(--sunset-3) 100%);
+  --glow: var(--sunset-glow);
+  --page-ink: #3a1f30;
+  --page-ink-dim: #8a5f72;
+}
+body[data-phase="night"] {
+  background: linear-gradient(165deg, var(--night-1) 0%, var(--night-2) 55%, var(--night-3) 100%);
+  --glow: var(--night-glow);
+  --page-ink: #eef1fa;
+  --page-ink-dim: #a7addb;
+}
+
+/* soft ambient glow standing in for the sun/moon, echoing the switch-thumb look */
+body::before {
+  content: "";
+  position: fixed;
+  top: -140px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 460px;
+  height: 460px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--glow), transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  transition: background 1.4s ease, opacity 1.4s ease;
+}
+
+/* small paper-cut "stars," only visible once the sky goes dark */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 18% 24%, rgba(255, 255, 255, 0.85), transparent),
+    radial-gradient(1px 1px at 68% 12%, rgba(255, 255, 255, 0.7), transparent),
+    radial-gradient(1.5px 1.5px at 42% 55%, rgba(255, 255, 255, 0.65), transparent),
+    radial-gradient(1px 1px at 84% 40%, rgba(255, 255, 255, 0.75), transparent),
+    radial-gradient(1px 1px at 58% 78%, rgba(255, 255, 255, 0.55), transparent),
+    radial-gradient(1.5px 1.5px at 12% 68%, rgba(255, 255, 255, 0.6), transparent),
+    radial-gradient(1px 1px at 30% 8%, rgba(255, 255, 255, 0.5), transparent),
+    radial-gradient(1px 1px at 92% 82%, rgba(255, 255, 255, 0.6), transparent);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 1.4s ease;
+}
+body[data-phase="night"]::after {
+  opacity: 1;
 }
 
 main {
   width: 100%;
   max-width: 460px;
+  position: relative;
+  z-index: 1;
 }
 
 header {
@@ -61,16 +157,18 @@ h1 {
   font-weight: 800;
   letter-spacing: 0.06em;
   margin: 0 0 2px;
-  color: var(--ink);
+  color: var(--page-ink);
+  transition: color 0.8s ease;
 }
 
 .subtitle {
-  color: var(--ink-dim);
+  color: var(--page-ink-dim);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   font-size: 0.75rem;
   font-weight: 600;
   margin: 0;
+  transition: color 0.8s ease;
 }
 
 /* --- pill plate shared look (paper-cut / neumorphic) --- */
@@ -116,9 +214,10 @@ h1 {
 
 .status {
   text-align: center;
-  color: var(--ink-dim);
+  color: var(--page-ink-dim);
   min-height: 1.2em;
   font-size: 0.9rem;
+  transition: color 0.8s ease;
 }
 
 /* --- score card --- */
@@ -264,12 +363,13 @@ h1 {
 
 h2 {
   font-size: 0.8rem;
-  color: var(--ink-dim);
+  color: var(--page-ink-dim);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 700;
   margin: 26px 0 10px;
   padding-left: 4px;
+  transition: color 0.8s ease;
 }
 
 .outlook {
